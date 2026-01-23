@@ -4,6 +4,8 @@ from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from sqlalchemy.orm import Mapped, mapped_column
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 CORS(app)
@@ -12,6 +14,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todos.db'
 class Base(DeclarativeBase):
   pass
 db = SQLAlchemy(app, model_class=Base)
+migrate = Migrate(app, db)
 
 class TodoItem(db.Model):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -37,6 +40,7 @@ with app.app_context():
          for item in INITIAL_TODOS:
              db.session.add(item)
          db.session.commit()
+
 
 todo_list = [
     { "id": 1,
