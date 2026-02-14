@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 function TodoItem({todo, toggleDone, deleteTodo, addNewComment}) {
   const [newComment, setNewComment] = useState("");
+  
   return (
     <>
 
