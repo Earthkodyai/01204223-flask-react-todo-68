@@ -2,6 +2,17 @@ import { render, screen } from '@testing-library/react'
 import { vi } from 'vitest'
 import App from '../App.jsx'
 
+vi.mock('../context/AuthContext.jsx', () => ({
+  useAuth: () => ({
+    username: 'testuser',
+    accessToken: 'mock-token-123',
+    login: vi.fn(),
+    logout: vi.fn(),
+  }),
+  // จำลองว่า AuthProvider แค่เอาลูกมาแสดงผลเฉยๆ ไม่ต้องทำอะไร
+  AuthProvider: ({ children }) => <div>{children}</div>,
+}));
+
 const mockResponse = (body, ok = true) =>
   Promise.resolve({
     ok,
@@ -64,6 +75,12 @@ describe('App', () => {
     expect(await screen.findByText('First todo')).toHaveClass('done');
     expect(global.fetch).toHaveBeenLastCalledWith(
       expect.stringMatching(/1\/toggle/), 
-      { method: 'PATCH' });
-  });
-});
+      expect.objectContaining({ 
+        method: 'PATCH',
+        headers: expect.objectContaining({
+          'Authorization': 'Bearer mock-token-123'
+        })
+      })
+    );
+  }); 
+}); 
