@@ -101,3 +101,59 @@ describe('TodoItem', () => {
   });
 });
 
+vi.mock('../context/AuthContext', () => ({
+  useAuth: vi.fn(),
+}));
+
+import { useAuth } from '../context/AuthContext';
+
+describe('TodoList', () => {
+  beforeEach(() => {
+    // ล้างสถานะ mock เดิมก่อนเริ่ม test ใหม่ทุกครั้ง
+    vi.clearAllMocks();
+
+    // Mock global fetch เพื่อไม่ให้ยิงไปที่ server จริง
+    vi.stubGlobal('fetch', vi.fn());
+
+    // --- ขั้นตอนที่ 2: สั่งให้ useAuth คืนค่าที่เราต้องการ (username, login, logout) ---
+    useAuth.mockReturnValue({
+      username: 'testuser',
+      accessToken: 'mock-token-123', // ใส่ไว้เพื่อให้โค้ดที่เรียกใช้ token ไม่พัง
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
+  });
+
+  it('renders TodoList with mocked user', () => {
+    render(<TodoList />);
+    // ตรวจสอบว่าหน้าจอแสดงผลโดยใช้ข้อมูลจาก useAuth ที่เรา mock ไว้
+    expect(screen.getByText(/testuser/i)).toBeDefined();
+  });
+
+  it('toggles done on a todo item', async () => {
+    // จำลองข้อมูลเริ่มต้นของ fetch (รายการ Todo)
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => [{ id: 1, title: 'Test Todo', done: false }],
+    });
+
+    render(<TodoList />);
+
+    // รอจนกว่า Todo จะขึ้นบนจอ
+    const checkbox = await screen.findByRole('checkbox');
+    
+    // จำลองการคลิก toggle
+    global.fetch.mockResolvedValueOnce({ ok: true });
+    fireEvent.click(checkbox);
+
+    // --- ขั้นตอนที่ 3: แก้ไขการ Assert fetch ให้ใช้ expect.anything() ---
+    // เพื่อให้ผ่านแม้ว่าจะมี Header หรือพารามิเตอร์อื่นๆ เพิ่มเข้ามา
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenLastCalledWith(
+        expect.stringMatching(/1\/toggle/), 
+        expect.anything() // ผ่อนปรนการตรวจสอบเพื่อให้รองรับ Authorization header
+      );
+    });
+  });
+});
+
